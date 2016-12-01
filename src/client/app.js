@@ -1,5 +1,11 @@
 import component from './components/component'
-import React from 'react'
+import React, { Component } from 'react'
+import css from './app.scss'
 
-// test
-document.body.appendChild(component());
+export default class App extends Component {
+  render() {
+    return (
+      <h1>Hello, world!</h1>
+    );
+  }
+}

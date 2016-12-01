@@ -18,7 +18,7 @@ const SERVER_ENTRY_PATH = path.join(__dirname, '..', 'src', 'server');
 const SERVER_ENTRY_FILE = path.join(__dirname, '..', 'src', 'server', 'index.js');
 const SERVER_OUTPUT_DIR = path.join(__dirname, '..', 'build');
 const CLIENT_ENTRY_DIR = path.join(__dirname, '..', 'src', 'client');
-const CLIENT_ENTRY_FILE = path.join(__dirname, '..', 'src', 'client', 'app.js');
+const CLIENT_ENTRY_FILE = path.join(__dirname, '..', 'src', 'client', 'index.js');
 const CLIENT_OUTPUT_DIR = path.join(__dirname, '..', 'build', 'public');
 
 let clientConfig, serverConfig, server;
@@ -65,15 +65,11 @@ const clientCommonConfig = {
 	module: {
     loaders: [
       {
-  			test: /\.scss$/,
-  			loader: ExtractTextPlugin.extract('style', 'css', 'sass'),
-  			include: CLIENT_ENTRY_DIR
-  		},{
         test: /\.json$/,
-        loader: 'json-loader',
+        loader: 'json',
       },{
         test: /\.txt$/,
-        loader: 'raw-loader',
+        loader: 'raw',
       },{
         test: /\.(png|jpg|jpeg|gif|svg|woff|woff2)$/,
         loader: 'url-loader?limit=10000',
@@ -89,10 +85,30 @@ const clientCommonConfig = {
 if (RELEASE) {
 
   // Build webpack configuration for production environment
+  serverConfig = Object.assign({}, serverCommonConfig, {
+    plugins: [
+      // The DefinePlugin replaces occurrences of the given identifiers
+      // with the given expressions. After that, UglifyJS detects dead code
+      // blocks and removes them
+      new webpack.DefinePlugin({'process.env.NODE_ENV': '"production"'}),
+      // Minimize js files
+      new webpack.optimize.UglifyJsPlugin({
+        compress: {
+          warnings: false
+        }
+      })
+    ]
+  });
+
   clientConfig = Object.assign({}, clientCommonConfig, {
     module: {
       loaders: [
         ...clientConfig.module.loaders,
+        {
+          test: /\.scss$/,
+          loader: ExtractTextPlugin.extract('style', 'css', 'sass'),
+          include: CLIENT_ENTRY_DIR
+        },
         {
           test: /\.js$/,
           loader: 'babel-loader',
@@ -105,7 +121,7 @@ if (RELEASE) {
     },
     plugins: [
       new HtmlWebpackPlugin({
-        title: 'Webpack Demo',
+        title: 'React Express Boilerplate Lite',
         minify: {
           removeComments: true,
           collapseWhitespace: true,
@@ -138,67 +154,9 @@ if (RELEASE) {
     ]
   });
 
-  serverConfig = Object.assign({}, serverCommonConfig, {
-    plugins: [
-      // The DefinePlugin replaces occurrences of the given identifiers
-      // with the given expressions. After that, UglifyJS detects dead code
-      // blocks and removes them
-      new webpack.DefinePlugin({'process.env.NODE_ENV': '"production"'}),
-      // Minimize js files
-      new webpack.optimize.UglifyJsPlugin({
-        compress: {
-          warnings: false
-        }
-      })
-    ]
-  });
-
 } else {
 
   // Build webpack configuration for development environment
-  clientConfig = Object.assign({}, clientCommonConfig, {
-    devtool: 'source-map',
-    entry: [
-      clientCommonConfig.entry.app,
-      'webpack-dev-server/client?http://localhost:' + DEV_PORT,
-      'webpack/hot/dev-server'
-
-    ],
-    module: {
-      loaders: [
-        ...clientCommonConfig.module.loaders,
-        {
-          test: /\.js$/,
-          loader: 'babel-loader',
-          exlude: /node_modules/,
-          query: {
-            presets: ['react', 'es2015', 'react-hmre']
-          }
-        }
-      ]
-    },
-    plugins: [
-      new HtmlWebpackPlugin({
-        title: 'Webpack Demo'
-      }),
-      new ExtractTextPlugin('[name].[chunkhash].css'),
-      new CleanWebpackPlugin(CLIENT_OUTPUT_DIR, {
-        root: process.cwd()
-      }),
-      new webpack.DefinePlugin({ 'process.env.BROWSER': false }),
-      // Enable multi-pass compilation for enhanced performance
-      // in larger projects. Good default.
-      new webpack.HotModuleReplacementPlugin({
-        // multiStep: true
-      }),
-      new webpack.NoErrorsPlugin(),
-      new WebpackBrowserPlugin({
-        port: DEV_PORT,
-        url: 'http://localhost'
-      })
-    ]
-  });
-
   serverConfig = Object.assign({}, serverCommonConfig, {
     devtool: 'source-map',
     node: {
@@ -216,19 +174,60 @@ if (RELEASE) {
       }),
       new webpack.BannerPlugin('require("source-map-support").install();', { raw: true, entryOnly: false })
     ]
-  })
+  });
+
+  clientConfig = Object.assign({}, clientCommonConfig, {
+    devtool: 'source-map',
+    entry: [
+      clientCommonConfig.entry.app,
+      'webpack-dev-server/client?http://localhost:' + DEV_PORT,
+      'webpack/hot/only-dev-server'
+    ],
+    module: {
+      loaders: [
+        ...clientCommonConfig.module.loaders,
+        {
+          test: /\.scss$/,
+          loaders: ['style', 'css', 'sass'],
+          include: CLIENT_ENTRY_DIR
+        },
+        {
+          test: /\.js$/,
+          loader: 'babel',
+          exlude: /node_modules/,
+          query: {
+            presets: ['es2015', 'react', 'stage-0', 'react-hmre']
+          }
+        }
+      ]
+    },
+    plugins: [
+      new HtmlWebpackPlugin({
+        title: 'Webpack Demo'
+      }),
+      // new ExtractTextPlugin('[name].[chunkhash].css'),
+      new CleanWebpackPlugin(CLIENT_OUTPUT_DIR, {
+        root: process.cwd()
+      }),
+      // new webpack.DefinePlugin({ 'process.env.BROWSER': true }),
+      // Enable multi-pass compilation for enhanced performance
+      // in larger projects. Good default.
+      new webpack.HotModuleReplacementPlugin({
+        multiStep: true
+      }),
+      new webpack.NoErrorsPlugin(),
+      new WebpackBrowserPlugin({
+        port: DEV_PORT,
+        url: 'http://localhost'
+      })
+    ]
+  });
 
 }
 
 // ---------------------------------------
 // Utility Functions
 // ---------------------------------------
-function clearOldBuild() {
-  // Deletes everything inside of ./build directory but keeps
-  // the dot files untouched (e.g. .git)
-  del.sync('./build/*');
-}
-
 function bundle(config) {
   // clearOldBuild();
   return new Promise((resolve, reject) => {
@@ -267,8 +266,8 @@ function serve() {
     let devServer = new WebpackDevServer(compiler, {
       hot: true,
       inline: true,
-      open: true,
       historyApiFallback: true,
+      publicPath: '/',
       quiet: false,
       stats: {
         colors: true
@@ -277,7 +276,6 @@ function serve() {
         '**' : {
           target: 'http://localhost:' + PORT,
           bypass: function(req, res, proxyOptions) {
-            console.log(req.path)
             if (req.path === '/__webpack_hmr') {
               return true;
             }

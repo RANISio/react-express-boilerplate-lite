@@ -6,11 +6,6 @@ const port = process.env.PORT || 3000;
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/api', (req, res) => {
-  res.send("Hello world.");
-});
-
-
 // Launch the server
 app.listen(port, (error) => {
   if (error) throw error;
