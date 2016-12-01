@@ -1,11 +1,14 @@
-import component from './components/component'
+import ShoppingList from './components/ShoppingList'
 import React, { Component } from 'react'
 import css from './app.scss'
 
 export default class App extends Component {
   render() {
     return (
-      <h1>Hello, world!</h1>
+      <div>
+        <h1>Hello, world!</h1>
+        <ShoppingList name="Ranis" />
+      </div>
     );
   }
 }

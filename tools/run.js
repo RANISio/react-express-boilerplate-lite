@@ -20,6 +20,7 @@ const SERVER_OUTPUT_DIR = path.join(__dirname, '..', 'build');
 const CLIENT_ENTRY_DIR = path.join(__dirname, '..', 'src', 'client');
 const CLIENT_ENTRY_FILE = path.join(__dirname, '..', 'src', 'client', 'index.js');
 const CLIENT_OUTPUT_DIR = path.join(__dirname, '..', 'build', 'public');
+const CLIENT_TEMPLATE_FILE = path.join(__dirname, '..', 'src', 'client', 'index.tmpl.ejs');
 
 let clientConfig, serverConfig, server;
 
@@ -78,7 +79,18 @@ const clientCommonConfig = {
         loader: 'file-loader',
       }
     ]
-	}
+	},
+  plugins: [
+    new HtmlWebpackPlugin({
+      title: 'React Express Boilerplate Lite',
+      template: CLIENT_TEMPLATE_FILE,
+      minify: {
+        removeComments: (RELEASE) ? true : false,
+        collapseWhitespace: true,
+        preserveLineBreaks: (RELEASE) ? false : true
+      }
+    })
+  ]
 }
 
 // Build webpack config depending on the environment
@@ -120,14 +132,7 @@ if (RELEASE) {
       ]
     },
     plugins: [
-      new HtmlWebpackPlugin({
-        title: 'React Express Boilerplate Lite',
-        minify: {
-          removeComments: true,
-          collapseWhitespace: true,
-          preserveLineBreaks: false
-        }
-      }),
+      ...clientCommonConfig.plugins,
       new PurifyCSSPlugin({
         basePath: process.cwd(),
         // `paths` is used to point PurifyCSS to files not
@@ -202,9 +207,7 @@ if (RELEASE) {
       ]
     },
     plugins: [
-      new HtmlWebpackPlugin({
-        title: 'Webpack Demo'
-      }),
+      ...clientCommonConfig.plugins,
       // new ExtractTextPlugin('[name].[chunkhash].css'),
       new CleanWebpackPlugin(CLIENT_OUTPUT_DIR, {
         root: process.cwd()
