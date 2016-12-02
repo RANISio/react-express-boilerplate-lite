@@ -1,4 +1,5 @@
 node_modules
+build
 ncp-debug.log
 npm-debug.log
 .DS_Store
