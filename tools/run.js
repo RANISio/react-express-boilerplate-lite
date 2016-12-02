@@ -1,5 +1,5 @@
 const webpack = require('webpack');
-const ChildProcess = require('child_process');
+const childProcess = require('child_process');
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const ExtractTextPlugin = require('extract-text-webpack-plugin');
@@ -50,13 +50,16 @@ const serverCommonConfig = {
 		]
 	},
   // Don't resolve dependecies for node
-	externals: Object.keys(Object.assign({}, npmConfig.devDependencies, npmConfig.dependencies))
+	externals: Object.keys(Object.assign({}, npmConfig.devDependencies, npmConfig.dependencies)),
+  plugins: [
+    new CleanWebpackPlugin(path.join(SERVER_OUTPUT_DIR, '*'), {
+      root: process.cwd(),
+      exclude: [CLIENT_OUTPUT_DIR]
+    })
+  ]
 }
 
 const clientCommonConfig = {
-	entry: {
-		app: CLIENT_ENTRY_FILE
-	},
 	output: {
 		path: CLIENT_OUTPUT_DIR,
 		filename: '[name].[hash].js',
@@ -89,7 +92,8 @@ const clientCommonConfig = {
         collapseWhitespace: true,
         preserveLineBreaks: (RELEASE) ? false : true
       }
-    })
+    }),
+    new CleanWebpackPlugin(CLIENT_OUTPUT_DIR, {}),
   ]
 }
 
@@ -99,6 +103,7 @@ if (RELEASE) {
   // Build webpack configuration for production environment
   serverConfig = Object.assign({}, serverCommonConfig, {
     plugins: [
+      ...serverCommonConfig.plugins,
       // The DefinePlugin replaces occurrences of the given identifiers
       // with the given expressions. After that, UglifyJS detects dead code
       // blocks and removes them
@@ -113,9 +118,13 @@ if (RELEASE) {
   });
 
   clientConfig = Object.assign({}, clientCommonConfig, {
+    entry: {
+      app: CLIENT_ENTRY_FILE,
+      vendor: ['react', 'react-dom']
+    },
     module: {
       loaders: [
-        ...clientConfig.module.loaders,
+        ...clientCommonConfig.module.loaders,
         {
           test: /\.scss$/,
           loader: ExtractTextPlugin.extract('style', 'css', 'sass'),
@@ -123,7 +132,7 @@ if (RELEASE) {
         },
         {
           test: /\.js$/,
-          loader: 'babel-loader',
+          loader: 'babel',
           exlude: /node_modules/,
           query: {
             presets: ['react', 'es2015']
@@ -173,10 +182,6 @@ if (RELEASE) {
       __dirname: false
     },
     plugins: [
-      new CleanWebpackPlugin(path.join(SERVER_OUTPUT_DIR, '*'), {
-        root: process.cwd(),
-        exclude: [CLIENT_OUTPUT_DIR]
-      }),
       new webpack.BannerPlugin('require("source-map-support").install();', { raw: true, entryOnly: false })
     ]
   });
@@ -184,9 +189,9 @@ if (RELEASE) {
   clientConfig = Object.assign({}, clientCommonConfig, {
     devtool: 'source-map',
     entry: [
-      clientCommonConfig.entry.app,
       'webpack-dev-server/client?http://localhost:' + DEV_PORT,
-      'webpack/hot/only-dev-server'
+      'webpack/hot/only-dev-server',
+      CLIENT_ENTRY_FILE
     ],
     module: {
       loaders: [
@@ -250,7 +255,7 @@ function runServer() {
   }
   params.push(path.join(SERVER_OUTPUT_DIR, 'index.js'));
   if(server) server.kill();
-  server = ChildProcess.spawn('node', params, {
+  server = childProcess.spawn('node', params, {
     env: process.env
   });
 
@@ -302,7 +307,8 @@ function serve() {
 // -------------------------------------
 switch (process.env.npm_lifecycle_event) {
   case 'build':
-    bundle();
+    process.env.BABEL_ENV=process.env.NODE_ENV = 'production';
+    bundle([clientConfig, serverConfig]);
     break;
   case 'serve':
     serve();

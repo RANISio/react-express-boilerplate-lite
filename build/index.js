@@ -53,7 +53,11 @@ require("source-map-support").install();
 	var port = process.env.PORT || 3000;
 	
 	// Serve static files from public directory
-	app.use(express.static(path.join(__dirname, 'public')));
+	app.use(express.static('./public'));
+	
+	app.use("/api", function (req, res) {
+	  res.send("API ENDPOINT");
+	});
 	
 	// Launch the server
 	app.listen(port, function (error) {

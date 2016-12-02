@@ -1,6 +1,6 @@
 import ShoppingList from './components/ShoppingList'
 import React, { Component } from 'react'
-import css from './app.scss'
+import mainCSS from './main.scss'
 
 export default class App extends Component {
   render() {
